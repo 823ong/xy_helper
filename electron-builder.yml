@@ -1,0 +1,61 @@
+appId: appid.xy_helper
+productName: xy_helper
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+asarUnpack:
+  - resources/**
+win:
+  executableName: xy_helper
+  verifyUpdateCodeSignature: false
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  # 安装前关闭应用
+  allowToChangeInstallationDirectory: false
+  # 允许降级安装
+  allowElevation: true
+  # 一个安装程序只安装一个架构
+  perMachine: false
+  # 安装/卸载完成后删除安装文件
+  deleteAppDataOnUninstall: false
+  # 创建开始菜单快捷方式
+  createStartMenuShortcut: true
+  # 安装前检查并关闭应用
+  installerLanguages: zh_CN
+  # 包含自定义 NSIS 脚本
+  include: build/installer.nsh
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: github
+  owner: 823ong  # 替换成你的 GitHub 用户名
+  repo: xy_helper  # 替换成你的仓库名
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/

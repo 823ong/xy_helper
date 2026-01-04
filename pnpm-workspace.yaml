@@ -1,0 +1,10 @@
+packages: ['.']
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - electron
+  - electron-winstaller
+  - esbuild
+  - prisma
+  - puppeteer
