@@ -57,5 +57,7 @@ publish:
   provider: github
   owner: 823ong  # 替换成你的 GitHub 用户名
   repo: xy_helper  # 替换成你的仓库名
+  releaseName: ${version}
+  draft: false
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
