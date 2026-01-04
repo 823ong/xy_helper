@@ -9,28 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get tag name
-        id: get_tag
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
-
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ steps.get_tag.outputs.TAG_NAME }} \
-            --title "${{ steps.get_tag.outputs.TAG_NAME }}" \
-            --generate-notes
-
   build:
-    needs: create-release
     strategy:
       matrix:
         include:
