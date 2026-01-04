@@ -99,12 +99,12 @@ jobs:
 
       - name: Build and package (macOS)
         if: matrix.platform == 'macos'
-        run: pnpm run build:mac -- --mac --arm64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }}
+        run: pnpm run build:mac -- --mac --arm64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and package (Windows)
         if: matrix.platform == 'windows'
-        run: pnpm run build:win -- --win --x64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }}
+        run: pnpm run build:win -- --win --x64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
