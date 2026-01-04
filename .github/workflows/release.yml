@@ -66,17 +66,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-electron-
 
+      - name: Get tag name
+        id: get_tag
+        shell: bash
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+
       - name: Install dependencies
         run: pnpm install
 
       - name: Build and package (macOS)
         if: matrix.platform == 'macos'
-        run: pnpm run build:mac -- --mac --arm64
+        run: pnpm run build:mac -- --mac --arm64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and package (Windows)
         if: matrix.platform == 'windows'
-        run: pnpm run build:win -- --win --x64
+        run: pnpm run build:win -- --win --x64 --config.version=${{ steps.get_tag.outputs.TAG_NAME }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 上传 artifacts 以便下载（可选，用于调试）
       - name: Upload artifacts (macOS)
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v4
@@ -85,6 +97,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/*.yml
 
       - name: Upload artifacts (Windows)
         if: matrix.platform == 'windows'
@@ -94,34 +107,4 @@ jobs:
           path: |
             dist/*.exe
             dist/*.zip
-
-  release:
-    needs: build
-    runs-on: macos-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.exe
-            artifacts/**/*.zip
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            dist/*.yml
