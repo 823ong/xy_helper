@@ -98,8 +98,6 @@
                     立即安装并重启
                   </n-button>
                 </n-space>
-                <n-button @click="handleInstallUpdate">xx</n-button>
-
                 <!-- 无更新提示 -->
                 <n-alert v-if="!hasUpdate && checked" type="info">已是最新版本</n-alert>
               </n-space>
