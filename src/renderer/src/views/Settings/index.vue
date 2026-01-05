@@ -2,7 +2,7 @@
   <div class="p-6">
     <n-card title="设置">
       <template #header-extra>
-        <n-button @click="handleSaveConfig" :loading="loadingObj.saveLoading">保存</n-button>
+        <n-button type="primary" @click="handleSaveConfig" :loading="loadingObj.saveLoading">保存</n-button>
       </template>
       <n-space class="mb-4" align="center">
         <span>配置同步：</span>
