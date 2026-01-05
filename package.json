@@ -1,8 +1,8 @@
 {
   "name": "xy_helper",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "823ong",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

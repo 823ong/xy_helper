@@ -43,14 +43,15 @@
 
 <script setup lang="tsx">
 import { BrowsersOutline } from '@vicons/ionicons5'
-import { NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu, useMessage } from 'naive-ui'
+import { NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu, useDialog, useMessage } from 'naive-ui'
 import { MenuMixedOption } from 'naive-ui/es/menu/src/interface'
 import { computed, h, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { win } from '@renderer/win'
 import { TransferLog } from '../../../preload/types/api'
 
-(window as any).message = useMessage()
+(window as any).message = useMessage();
+(window as any).dialog = useDialog()
 
 const router = useRouter()
 const route = useRoute()
