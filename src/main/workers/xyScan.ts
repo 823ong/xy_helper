@@ -130,6 +130,9 @@ async function workLoop() {
           sendResult(false, '未认证')
           await pageGoHome()
         }
+      } else if ((await page.getByText('不需要安全认证，直接进入下一步').count()) > 0) {
+        sendResult(false, '未认证')
+        await pageGoHome()
       } else {
         const url = page.url()
         if (!url.includes(page.url())) {

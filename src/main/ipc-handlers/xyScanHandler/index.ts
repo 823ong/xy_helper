@@ -144,6 +144,27 @@ function appendLineToFile(line: string) {
     }
   })
 }
+function isExist(phone: string): boolean {
+  const filePath = path.join(app.getPath('userData'), '可用号码.txt')
+
+  // 1. 文件不存在 → 肯定不存在该号码
+  if (!fs.existsSync(filePath)) {
+    return false
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    return content.includes(phone.trim())
+  } catch (err) {
+    console.error('读取文件失败:', err)
+    xySendLog2UI({
+      type: 'log',
+      level: 'error',
+      content: '读取文件失败: ' + err
+    })
+    return false
+  }
+}
 
 let lastSendLog = ''
 
@@ -285,6 +306,14 @@ async function workLoop() {
         level: 'info',
         content: `平台${xyScanInfo.currentPlatform}获取到号码:${phone}`
       })
+      if (isExist(phone)) {
+        xySendLog2UI({
+          type: 'log',
+          level: 'info',
+          content: `号码${phone}已存在,重新获取`
+        })
+        continue
+      }
       xyScanInfo.currentPhoneInfo = {
         phone,
         pt: xyScanInfo.currentPlatform
