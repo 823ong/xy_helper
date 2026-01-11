@@ -138,9 +138,9 @@ function appendLineToFile(line: string) {
   // 使用追加模式写入文件，自动创建文件（如果不存在）
   fs.appendFile(filePath, line + '\n', (err) => {
     if (err) {
-      console.error('写入文件失败:', err)
+      console.error('write to file error:', err)
     } else {
-      console.log(`成功追加一行到文件: ${filePath}`)
+      console.log(`add line to file: ${filePath}`)
     }
   })
 }
@@ -183,9 +183,8 @@ function getWorkerPath(): string {
 }
 
 function startWorkerProcess(): void {
-  console.log('开始启动')
   const workerProcessPath = getWorkerPath()
-  console.log('启动路径:', workerProcessPath)
+  console.log('worker path:', workerProcessPath)
 
   const workerProcess = utilityProcess.fork(workerProcessPath, [], {
     serviceName: 'xyScan Service',
@@ -300,6 +299,7 @@ async function workLoop() {
       continue
     }
     try {
+
       const phone = await getAPI(xyScanInfo.currentPlatform).getPhone()
       xySendLog2UI({
         type: 'log',
@@ -318,6 +318,8 @@ async function workLoop() {
         phone,
         pt: xyScanInfo.currentPlatform
       } as PhoneData
+      xyScanInfo.checkRunning = true
+      xyScanInfo.running = true
       if (!phone) {
         xySendLog2UI({
           type: 'log',
@@ -329,7 +331,7 @@ async function workLoop() {
       broadcastXyScanInfoUpdate()
     } catch (e) {
       xyScanInfo.running = false
-      console.log(e)
+      console.log('fetch phone or send info to worker error',e)
       xySendLog2UI({
         type: 'log',
         level: 'error',
