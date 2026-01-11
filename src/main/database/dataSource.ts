@@ -3,6 +3,7 @@ import { PhoneData } from "./entities/PhoneData";
 import { SystemConfig } from "./entities/SystemConfig";
 import { app } from "electron";
 import path from "path";
+import fs from "fs";
 // @ts-ignore
 import type { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 
@@ -14,8 +15,12 @@ export const getAppDataSource = async (): Promise<DataSource> => {
     return dataSource;
   }
 
-  // SQLite数据库文件路径
-  const dbPath = path.join(app.getPath('userData'), 'database.sqlite');
+  // SQLite数据库文件路径 - 存储在文档/xy_helper目录下
+  const dbDir = path.join(app.getPath('documents'), 'xy_helper');
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  const dbPath = path.join(dbDir, 'database.sqlite');
 
   const connectionOptions: any = {
     type: "sqlite",
