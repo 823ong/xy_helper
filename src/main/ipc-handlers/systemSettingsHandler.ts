@@ -1,4 +1,4 @@
-import { BrowserWindow, app, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import { SystemSettings } from "../../preload/types/api";
@@ -10,17 +10,12 @@ import IpcMainInvokeEvent = Electron.IpcMainInvokeEvent;
 
 export const defaultConfig: SystemSettings = {
   theme: "light",
-  database: {
-    url: "",
-    username: "",
-    password: "",
-    database: ""
-  },
   smsPlatform: [
     { name: "eomsg", baseURL: "http://api.eomsg.com/zc/data.php" },
     { name: "d1jiema", baseURL: "http://api.d1jiema.com/zc/data.php" },
     { name: "豪猪", baseURL: "https://api.haozhuyun.com" },
-    { name: "他信", baseURL: "http://api.my531.com" }
+    { name: "他信", baseURL: "http://api.my531.com" },
+    { name: "test", baseURL: "" }
   ]
 };
 export let currentConfig: SystemSettings = defaultConfig;

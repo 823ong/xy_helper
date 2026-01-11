@@ -1,59 +1,29 @@
 import { DataSource } from "typeorm";
 import { PhoneData } from "./entities/PhoneData";
 import { SystemConfig } from "./entities/SystemConfig";
-import { currentConfig } from "../ipc-handlers/systemSettingsHandler";
-import { isEqual } from "lodash";
+import { app } from "electron";
+import path from "path";
 // @ts-ignore
 import type { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 
 let dataSource: DataSource | null = null;
-let lastUsedConfig: any = null;
 
 export const getAppDataSource = async (): Promise<DataSource> => {
-  const currentDbConfig = currentConfig.database;
-
-  // Check if we need to reconnect
+  // 如果已经初始化，直接返回
   if (dataSource && dataSource.isInitialized) {
-    if (isEqual(currentDbConfig, lastUsedConfig)) {
-      return dataSource;
-    }
-    // Config changed, disconnect
-    await dataSource.destroy();
+    return dataSource;
   }
 
-  lastUsedConfig = { ...currentDbConfig };
-
-  const { url, username, password, database } = currentDbConfig || {};
-
-  let host = "localhost";
-  let port = 3306;
+  // SQLite数据库文件路径
+  const dbPath = path.join(app.getPath('userData'), 'database.sqlite');
 
   const connectionOptions: any = {
-    type: "mysql",
-    username,
-    password,
-    database,
-    synchronize: false,
+    type: "sqlite",
+    database: dbPath,
+    synchronize: true, // 自动同步表结构
     logging: ["error", "warn"],
     entities: [PhoneData, SystemConfig]
   };
-
-  if (url && url.includes("://")) {
-    connectionOptions.url = url;
-  } else if (url) {
-    const parts = url.split(":");
-    if (parts.length === 2) {
-      host = parts[0];
-      port = parseInt(parts[1], 10);
-    } else {
-      host = url;
-    }
-    connectionOptions.host = host;
-    connectionOptions.port = port;
-  } else {
-    connectionOptions.host = host;
-    connectionOptions.port = port;
-  }
 
   dataSource = new DataSource(connectionOptions);
   await dataSource.initialize();

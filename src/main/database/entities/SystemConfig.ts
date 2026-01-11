@@ -2,18 +2,25 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 
 @Entity("system_config")
 export class SystemConfig {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Column({ name: "config_name", type: "varchar", length: 255, nullable: true })
   configName!: string | null;
 
-  @Column({ type: "json", nullable: true })
+  @Column({
+    type: "text",
+    nullable: true,
+    transformer: {
+      to: (value: any) => value ? JSON.stringify(value) : null,
+      from: (value: string) => value ? JSON.parse(value) : null
+    }
+  })
   config: any | null;
 
-  @CreateDateColumn({ name: "create_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @CreateDateColumn({ name: "create_at" })
   createAt!: Date;
 
-  @UpdateDateColumn({ name: "update_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" })
+  @UpdateDateColumn({ name: "update_at" })
   updateAt!: Date;
 }

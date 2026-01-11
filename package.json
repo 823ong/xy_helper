@@ -24,6 +24,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "@vicons/ionicons5": "^0.13.0",
     "axios": "^1.13.2",
+    "better-sqlite3": "^12.6.0",
     "cross-fetch": "^4.1.0",
     "dayjs": "^1.11.19",
     "electron-log": "^5.4.3",
@@ -35,6 +36,7 @@
     "playwright": "^1.57.0",
     "playwright-extra": "^4.3.6",
     "reflect-metadata": "^0.2.2",
+    "sqlite3": "^5.1.7",
     "tailwindcss": "^4.1.17",
     "typeorm": "^0.3.28",
     "vue-router": "^4.6.4"

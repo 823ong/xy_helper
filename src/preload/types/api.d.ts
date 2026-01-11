@@ -4,7 +4,7 @@ import { ElectronAPI } from "@electron-toolkit/preload";
 
 export interface SystemSettings extends Record<string, any> {
   theme: "light" | "dark" | "auto";
-  database: {
+  database?: {
     url: string;
     username: string;
     password: string;

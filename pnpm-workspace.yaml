@@ -1,4 +1,5 @@
-packages: ['.']
+packages:
+  - .
 
 onlyBuiltDependencies:
   - '@prisma/client'
@@ -8,3 +9,4 @@ onlyBuiltDependencies:
   - esbuild
   - prisma
   - puppeteer
+  - sqlite3

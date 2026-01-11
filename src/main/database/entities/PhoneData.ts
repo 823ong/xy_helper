@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Update
 
 @Entity("phone_data")
 export class PhoneData {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Index("phone_data_phone_index")
@@ -22,9 +22,9 @@ export class PhoneData {
   @Column({ type: "varchar", length: 255, nullable: true })
   reason!: string | null;
 
-  @CreateDateColumn({ name: "create_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @CreateDateColumn({ name: "create_at" })
   createAt!: Date;
 
-  @UpdateDateColumn({ name: "update_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" })
+  @UpdateDateColumn({ name: "update_at" })
   updateAt!: Date;
 }

@@ -4,6 +4,7 @@ import { TransferCommand, TransferLog } from "../../../preload/types/api";
 import { XYWorkerBaseInfo, XYWorkerInfo } from "../../../preload/types/XYWorker";
 import { getAPI } from "../../utils/smsCode/smsCodePlatformAPI";
 import { PhoneData } from "../../database/entities/PhoneData";
+import { getRepository } from "../../database/dataSource";
 import fs from "fs";
 import IpcMainInvokeEvent = Electron.IpcMainInvokeEvent;
 
@@ -80,13 +81,42 @@ export function registerXyScanHandler() {
         break
       case 'openSuccessFile':
         const filePath = path.join(app.getPath('userData'), '可用号码.txt')
-        if (fs.existsSync(filePath)) {
+        try {
+          // 从数据库导出成功号码到文件
+          const repository = await getRepository(PhoneData)
+          const successPhones = await repository.find({
+            where: { status: 2 },
+            order: { createAt: 'DESC' }
+          })
+
+          if (successPhones.length === 0) {
+            xySendLog2UI({
+              type: 'log',
+              level: 'error',
+              content: '没有可用号码，请先运行任务！'
+            })
+            break
+          }
+
+          // 生成文件内容
+          const lines = successPhones.map(p =>
+            `${p.createAt.toISOString().substring(0, 23)}-${p.pt}-${p.xmid}-${p.phone}`
+          )
+
+          // 写入文件
+          const dir = path.dirname(filePath)
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true })
+          }
+          fs.writeFileSync(filePath, lines.join('\n'), 'utf-8')
+
+          // 打开文件
           await shell.openPath(filePath)
-        } else {
+        } catch (error) {
           xySendLog2UI({
             type: 'log',
             level: 'error',
-            content: '结果文件不存在，请先运行任务！'
+            content: `导出文件失败: ${error}`
           })
         }
         break
@@ -128,41 +158,44 @@ export function xySendLog2UI(message: TransferLog): void {
   webContents.send('xyScan:log', message)
 }
 
-function appendLineToFile(line: string) {
-  const filePath = path.join(app.getPath('userData'), '可用号码.txt')
-  const dir = path.dirname(filePath)
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-
-  // 使用追加模式写入文件，自动创建文件（如果不存在）
-  fs.appendFile(filePath, line + '\n', (err) => {
-    if (err) {
-      console.error('write to file error:', err)
-    } else {
-      console.log(`add line to file: ${filePath}`)
-    }
-  })
-}
-function isExist(phone: string): boolean {
-  const filePath = path.join(app.getPath('userData'), '可用号码.txt')
-
-  // 1. 文件不存在 → 肯定不存在该号码
-  if (!fs.existsSync(filePath)) {
-    return false
-  }
-
+// 保存成功号码到数据库
+async function saveSuccessPhone(phone: string, platform: string, projectId: string, status: number = 2, reason: string | null = null) {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8')
-    return content.includes(phone.trim())
+    const repository = await getRepository(PhoneData);
+    const phoneData = new PhoneData();
+    phoneData.phone = phone;
+    phoneData.pt = platform;
+    phoneData.xmid = projectId;
+    phoneData.status = status;
+    phoneData.reason = reason;
+
+    await repository.save(phoneData);
+    console.log(`save phone to database: ${phone}`);
   } catch (err) {
-    console.error('读取文件失败:', err)
+    console.error('save to database error:', err);
     xySendLog2UI({
       type: 'log',
       level: 'error',
-      content: '读取文件失败: ' + err
-    })
-    return false
+      content: 'save to database error: ' + err
+    });
+  }
+}
+// 检查号码是否已存在于数据库
+async function isExist(phone: string): Promise<boolean> {
+  try {
+    const repository = await getRepository(PhoneData);
+    const count = await repository.count({
+      where: { phone: phone.trim() }
+    });
+    return count > 0;
+  } catch (err) {
+    console.error('query database error:', err);
+    xySendLog2UI({
+      type: 'log',
+      level: 'error',
+      content: 'query database error: ' + err
+    });
+    return false;
   }
 }
 
@@ -247,10 +280,22 @@ function startWorkerProcess(): void {
               content: `拉黑号码失败`
             })
           }
+          // 保存失败号码到数据库
+          await saveSuccessPhone(
+            phone,
+            xyScanInfo.currentPlatform,
+            api.projectId,
+            data.status,
+            data.reason
+          )
         } else {
           const api = getAPI(xyScanInfo.currentPlatform)
-          appendLineToFile(
-            `${new Date().toISOString().substring(0, 23)}-${xyScanInfo.currentPlatform}-${api.projectId}-${phone}`
+          await saveSuccessPhone(
+            phone,
+            xyScanInfo.currentPlatform,
+            api.projectId,
+            2,
+            data.reason
           )
           xyScanInfo.successCount++
         }
@@ -306,7 +351,7 @@ async function workLoop() {
         level: 'info',
         content: `平台${xyScanInfo.currentPlatform}获取到号码:${phone}`
       })
-      if (isExist(phone)) {
+      if (await isExist(phone)) {
         xySendLog2UI({
           type: 'log',
           level: 'info',

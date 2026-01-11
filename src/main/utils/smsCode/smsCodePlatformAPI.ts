@@ -1,9 +1,10 @@
-import d1jiemaAPI from './d1jiemaAPI'
-import taxinAPI from './taxinAPI'
-import eomsgAPI from './eomsgAPI'
-import haozhuAPI from './haozhuAPI'
-import axios, { AxiosRequestConfig } from 'axios'
-import { currentConfig } from '../../ipc-handlers/systemSettingsHandler'
+import d1jiemaAPI from "./d1jiemaAPI";
+import taxinAPI from "./taxinAPI";
+import eomsgAPI from "./eomsgAPI";
+import haozhuAPI from "./haozhuAPI";
+import axios, { AxiosRequestConfig } from "axios";
+import { currentConfig } from "../../ipc-handlers/systemSettingsHandler";
+import testAPI from "./testAPI";
 
 export interface SmsPlatformInfo {
   name: string
@@ -35,7 +36,8 @@ export const SmsPlatformAPIs: Record<string, PlatformAPI> = {
   d1jiema: d1jiemaAPI,
   eomsg: eomsgAPI,
   '豪猪': haozhuAPI,
-  '他信': taxinAPI
+  '他信': taxinAPI,
+  'test': testAPI
 }
 
 /**
