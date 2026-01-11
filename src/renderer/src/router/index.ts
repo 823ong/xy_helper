@@ -1,7 +1,7 @@
-import { Accessibility, Fish, PhonePortraitOutline, Planet, SettingsOutline } from '@vicons/ionicons5'
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { PhonePortraitOutline, Planet, SettingsOutline } from "@vicons/ionicons5";
+import { createRouter, createWebHashHistory } from "vue-router";
 
-import MainLayout from '../layouts/MainLayout.vue'
+import MainLayout from "../layouts/MainLayout.vue";
 
 const routes = [
   {
@@ -19,16 +19,16 @@ const routes = [
           hidden: true,
         }
       },
-      {
-        path: '/CookieGetter',
-        name: 'CookieGetter',
-        component: () => import('../views/CookieGetter/index.vue'),
-        meta: {
-          label: '上号器',
-          icon: Accessibility,
-          hidden: true,
-        }
-      },
+      // {
+      //   path: '/CookieGetter',
+      //   name: 'CookieGetter',
+      //   component: () => import('../views/CookieGetter/index.vue'),
+      //   meta: {
+      //     label: '上号器',
+      //     icon: Accessibility,
+      //     hidden: true,
+      //   }
+      // },
       {
         path: '/PhoneData',
         name: 'PhoneData',
@@ -39,16 +39,16 @@ const routes = [
           hidden: true,
         }
       },
-      {
-        path: '/已采集数据',
-        name: 'CollectedData',
-        component: () => import('../views/PhoneData/index.vue'),
-        meta: {
-          label: '已采集数据',
-          icon: Fish,
-          hidden: true,
-        }
-      },
+      // {
+      //   path: '/已采集数据',
+      //   name: 'CollectedData',
+      //   component: () => import('../views/PhoneData/index.vue'),
+      //   meta: {
+      //     label: '已采集数据',
+      //     icon: Fish,
+      //     hidden: true,
+      //   }
+      // },
       {
         path: 'settings',
         name: 'Settings',

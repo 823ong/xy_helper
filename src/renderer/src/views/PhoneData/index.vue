@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center">
       <div class="flex gap-2">
         <n-input v-model:value="searchPhone" placeholder="搜索手机号" clearable @keydown.enter="fetchData" />
-        <n-select v-model:value="searchStatus" :options="statusOptions" placeholder="选择状态" class="w-32" />
+        <n-select v-model:value="searchStatus" :options="statusOptions" placeholder="选择状态" class="w-32" @update:value="fetchData" />
         <n-button type="primary" @click="fetchData">搜索</n-button>
       </div>
       <div class="flex gap-2">
@@ -181,7 +181,7 @@ const columns: DataTableColumns<PhoneData> = [
   {
     title: '操作',
     key: 'actions',
-    width: 150,
+    width: 220,
     render(row) {
       return h(NSpace, null, {
         default: () => [
@@ -190,6 +190,11 @@ const columns: DataTableColumns<PhoneData> = [
             type: 'primary',
             onClick: () => handleEdit(row)
           }, { default: () => '编辑' }),
+          h(NButton, {
+            size: 'small',
+            type: 'warning',
+            onClick: () => handleMarkUnavailable(row)
+          }, { default: () => '不可用' }),
           h(NButton, {
             size: 'small',
             type: 'error',
@@ -247,6 +252,23 @@ const handleDelete = async (row: PhoneData) => {
     fetchData()
   } catch (error) {
     message.error('删除失败')
+  }
+}
+
+const handleMarkUnavailable = async (row: PhoneData) => {
+  try {
+    await window.electron.ipcRenderer.invoke('phone-data:save', {
+      id: row.id,
+      phone: row.phone,
+      pt: row.pt,
+      xmid: row.xmid,
+      status: -1,
+      reason: row.reason
+    })
+    message.success('已标记为不可用')
+    fetchData()
+  } catch (error) {
+    message.error('操作失败')
   }
 }
 
