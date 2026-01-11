@@ -157,6 +157,7 @@ async function workLoop() {
     }
   }
   console.log("工作循环已停止");
+  info.executedLoop = false;
 }
 
 if (parentPort) {
@@ -172,18 +173,30 @@ if (parentPort) {
             sendLogInfo(`开始测试新号码: ${msg.payload?.currentPhone}`);
           }
           info = { ...info, ...msg.payload };
+          if (info.running) {
+            sendLogInfo("开始执行脚本");
+            // 启动工作循环（只启动一次）
+            if (!info.executedLoop) {
+              workLoop().catch((err) => {
+                console.error("工作循环出错:", err);
+                sendLogError(String(err));
+              });
+              info.executedLoop = true;
+            }
+          }
           break;
 
         case "start":
-          if (!info.executedLoop) {
-            info.running = true;
+          if (info.running) {
             sendLogInfo("开始执行脚本");
             // 启动工作循环（只启动一次）
-            workLoop().catch((err) => {
-              console.error("工作循环出错:", err);
-              sendLogError(String(err));
-            });
-            info.executedLoop = true;
+            if (!info.executedLoop) {
+              workLoop().catch((err) => {
+                console.error("工作循环出错:", err);
+                sendLogError(String(err));
+              });
+              info.executedLoop = true;
+            }
           }
           break;
 
