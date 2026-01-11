@@ -47,7 +47,8 @@ import { Refresh } from "@vicons/ionicons5";
 import { computed, onMounted, reactive, ref } from "vue";
 import { TransferData, TransferLog } from "../../../../preload/types/api";
 import { useSystemSettingsStore } from "@renderer/stores/systemSettings";
-import { XYWorkerBaseInfo } from '../../../../preload/types/XYWorker'
+import { XYWorkerBaseInfo } from "../../../../preload/types/XYWorker";
+import tipAudio from "@renderer/assets/tip.mp3";
 
 interface Props {
   logPanel: InstanceType<typeof LogPanel>;
@@ -119,10 +120,20 @@ const handleToggle = async () => {
     await handleStart();
   }
 };
+// 处理错误提示音
+const handleErrorAlert = (logObj: TransferLog) => {
+  if (logObj.level==='error' && logObj?.content.includes('验证')) {
+    const audio = new Audio(tipAudio);
+    audio.play().catch(e => console.error('播放音频失败:', e));
+  }
+};
+
 onMounted(() => {
   win.api.xyScan.listenLog((logObj: TransferLog) => {
     console.log(logObj);
     logPanel.addLog(logObj.level, logObj.content);
+    // 检查日志内容,播放提示音
+    handleErrorAlert(logObj);
   });
   win.api.xyScan.onUpdated((info: TransferData) => {
     Object.assign(platformInfo, info);
