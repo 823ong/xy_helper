@@ -118,7 +118,7 @@ async function workLoop() {
         // 图形验证码
         sendLogError("todo 遇到了惩罚验证码,需要人工输入");
       } else if ((await page.locator("#iframe1").count()) > 0) {
-        // 结果
+        // 框架
         const frame = page.frameLocator("#iframe1");
         await frame.locator("body").waitFor();
         if ((await frame.locator("#J_Qrcode").count()) > 0) {
@@ -127,13 +127,10 @@ async function workLoop() {
         } else if ((await frame.locator("#J_Phone_Checkcode").count()) > 0) {
           sendResult(false, "未认证");
           await pageGoHome();
-        } else {
+        } else if (await frame.locator('p.ui-tipbox-explain', { hasText: '不需要安全验证，直接进入下一步...' }).isVisible()) {
           sendResult(false, "未认证");
           await pageGoHome();
         }
-      } else if (await page.getByText("不需要安全验证，直接进入下一步...").isVisible()) {
-        sendResult(false, "未认证");
-        await pageGoHome();
       } else if (await page.locator("#newPwd").count() > 0) {
         sendResult(false, "未认证");
         await pageGoHome();

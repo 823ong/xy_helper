@@ -122,7 +122,7 @@ const handleToggle = async () => {
 };
 // 处理错误提示音
 const handleErrorAlert = (logObj: TransferLog) => {
-  if (logObj.level==='error' && logObj?.content.includes('验证')) {
+  if (logObj.level==='error' && logObj?.content.includes('惩罚')) {
     const audio = new Audio(tipAudio);
     audio.play().catch(e => console.error('播放音频失败:', e));
   }
