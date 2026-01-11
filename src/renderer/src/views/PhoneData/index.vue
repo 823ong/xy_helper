@@ -3,6 +3,7 @@
     <div class="flex justify-between items-center">
       <div class="flex gap-2">
         <n-input v-model:value="searchPhone" placeholder="搜索手机号" clearable @keydown.enter="fetchData" />
+        <n-select v-model:value="searchStatus" :options="statusOptions" placeholder="选择状态" class="w-32" />
         <n-button type="primary" @click="fetchData">搜索</n-button>
       </div>
       <div class="flex gap-2">
@@ -71,9 +72,19 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref, computed } from 'vue'
-import { NButton, NSpace, useMessage, DataTableColumns, FormInst, NRadio, NRadioGroup, NInputNumber, NSelect } from 'naive-ui'
-import dayjs from 'dayjs'
+import { computed, h, onMounted, reactive, ref } from "vue";
+import {
+  DataTableColumns,
+  FormInst,
+  NButton,
+  NInputNumber,
+  NRadio,
+  NRadioGroup,
+  NSelect,
+  NSpace,
+  useMessage
+} from "naive-ui";
+import dayjs from "dayjs";
 
 interface PhoneData {
   id: number
@@ -90,6 +101,7 @@ const message = useMessage()
 const loading = ref(false)
 const dataList = ref<PhoneData[]>([])
 const searchPhone = ref('')
+const searchStatus = ref(2) // 默认为已认证
 const showModal = ref(false)
 const submitting = ref(false)
 const formRef = ref<FormInst | null>(null)
@@ -146,8 +158,8 @@ const statusOptions = [
 const columns: DataTableColumns<PhoneData> = [
   { title: 'ID', key: 'id', width: 80 },
   { title: '手机号', key: 'phone', width: 150 },
-  { title: 'PT', key: 'pt', width: 120 },
-  { title: 'XMID', key: 'xmid', width: 120 },
+  { title: '平台', key: 'pt', width: 120 },
+  { title: '项目ID', key: 'xmid', width: 120 },
   {
     title: '状态',
     key: 'status',
@@ -195,7 +207,8 @@ const fetchData = async () => {
     const res = await window.electron.ipcRenderer.invoke('phone-data:get-list', {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      phone: searchPhone.value
+      phone: searchPhone.value,
+      status: searchStatus.value
     })
     dataList.value = res.items
     pagination.itemCount = res.total

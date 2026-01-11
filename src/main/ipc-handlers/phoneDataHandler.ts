@@ -10,7 +10,7 @@ export function registerPhoneDataHandler(): void {
   ipcMain.handle("phone-data:get-by-id", getPhoneDataById);
 }
 
-const getPhoneDataList = async (_event: IpcMainInvokeEvent, { page = 1, pageSize = 10, phone }: { page: number; pageSize: number; phone?: string }) => {
+const getPhoneDataList = async (_event: IpcMainInvokeEvent, { page = 1, pageSize = 10, phone, status }: { page: number; pageSize: number; phone?: string; status?: number }) => {
   const dataSource = await getAppDataSource();
   const repo = dataSource.getRepository(PhoneData);
 
@@ -18,6 +18,10 @@ const getPhoneDataList = async (_event: IpcMainInvokeEvent, { page = 1, pageSize
 
   if (phone) {
     queryBuilder.where("phone_data.phone LIKE :phone", { phone: `%${phone}%` });
+  }
+
+  if (status !== undefined) {
+    queryBuilder.andWhere("phone_data.status = :status", { status });
   }
 
   queryBuilder
