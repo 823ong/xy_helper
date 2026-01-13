@@ -2,12 +2,14 @@ import { ipcMain } from "electron";
 import { getAppDataSource } from "../database/dataSource";
 import { PhoneData } from "../database/entities/PhoneData";
 import { IpcMainInvokeEvent } from "electron";
+import { getAPI } from "../utils/smsCode/smsCodePlatformAPI";
 
 export function registerPhoneDataHandler(): void {
   ipcMain.handle("phone-data:get-list", getPhoneDataList);
   ipcMain.handle("phone-data:save", savePhoneData);
   ipcMain.handle("phone-data:delete", deletePhoneData);
   ipcMain.handle("phone-data:get-by-id", getPhoneDataById);
+  ipcMain.handle("phone-data:block-phone", blockPhone);
 }
 
 const getPhoneDataList = async (_event: IpcMainInvokeEvent, { page = 1, pageSize = 10, phone, status }: { page: number; pageSize: number; phone?: string; status?: number }) => {
@@ -55,4 +57,15 @@ const getPhoneDataById = async (_event: IpcMainInvokeEvent, id: number) => {
   const dataSource = await getAppDataSource();
   const repo = dataSource.getRepository(PhoneData);
   return await repo.findOneBy({ id });
+};
+
+const blockPhone = async (_event: IpcMainInvokeEvent, { phone, platform }: { phone: string; platform: string }) => {
+  try {
+    const api = getAPI(platform);
+    const result = await api.blockPhone(phone);
+    return { success: result };
+  } catch (error) {
+    console.error('Block phone error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 };

@@ -181,7 +181,7 @@ const columns: DataTableColumns<PhoneData> = [
   {
     title: '操作',
     key: 'actions',
-    width: 220,
+    width: 280,
     render(row) {
       return h(NSpace, null, {
         default: () => [
@@ -195,6 +195,12 @@ const columns: DataTableColumns<PhoneData> = [
             type: 'warning',
             onClick: () => handleMarkUnavailable(row)
           }, { default: () => '不可用' }),
+          h(NButton, {
+            size: 'small',
+            type: 'info',
+            disabled: !row.pt,
+            onClick: () => handleBlockPhone(row)
+          }, { default: () => '拉黑号码' }),
           h(NButton, {
             size: 'small',
             type: 'error',
@@ -269,6 +275,29 @@ const handleMarkUnavailable = async (row: PhoneData) => {
     fetchData()
   } catch (error) {
     message.error('操作失败')
+  }
+}
+
+const handleBlockPhone = async (row: PhoneData) => {
+  if (!row.pt) {
+    message.warning('该记录没有关联平台，无法拉黑')
+    return
+  }
+
+  try {
+    const res = await window.electron.ipcRenderer.invoke('phone-data:block-phone', {
+      phone: row.phone,
+      platform: row.pt
+    })
+
+    if (res.success) {
+      message.success('拉黑成功')
+    } else {
+      message.error(res.error || '拉黑失败')
+    }
+  } catch (error) {
+    console.error(error)
+    message.error('拉黑失败')
   }
 }
 

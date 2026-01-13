@@ -1,5 +1,7 @@
 import { chromium } from 'playwright-extra'
 import { Page, BrowserContext } from 'playwright'
+import { rmSync } from 'fs'
+import { join } from 'path'
 
 const parentPort = (process as any).parentPort
 
@@ -137,7 +139,7 @@ export async function handleSliderCaptcha(
   checkMethod?: () => Promise<boolean>
 ) {
   try {
-    sendLogInfo('开始处理滑块验证码...')
+    sendLogDebug('开始处理滑块验证码...')
 
     // 1. 等待滑块元素出现
     const slider = await page.locator(sliderSelector).first()
@@ -159,8 +161,6 @@ export async function handleSliderCaptcha(
 
     // 计算滑动距离（容器宽度 - 滑块宽度 - 一些边距）
     const distance = containerBox.width - sliderBox.width + 30
-
-    sendLogInfo(`滑动距离: ${distance}px`)
 
     // 3. 移动到滑块中心位置（加入随机偏移）
     const startX = sliderBox.x + sliderBox.width / 2 + (Math.random() - 0.5) * 5
@@ -198,7 +198,7 @@ export async function handleSliderCaptcha(
     // 9. 释放鼠标
     await page.mouse.up()
 
-    sendLogInfo('滑块滑动完成')
+    sendLogDebug('滑块滑动完成')
 
     // 10. 等待验证结果（等待滑块消失或出现成功/失败提示）
     await page.waitForTimeout(1000)
@@ -206,7 +206,7 @@ export async function handleSliderCaptcha(
     if (checkMethod) {
       const res = await checkMethod()
       if (res) {
-        sendLogInfo('滑块验证成功！')
+        sendLogDebug('滑块验证成功！')
         return true
       } else {
         sendLogError('滑块验证失败')
@@ -216,7 +216,7 @@ export async function handleSliderCaptcha(
       // 检查滑块是否还存在（如果消失了说明验证成功）
       const sliderCount = await page.locator(sliderSelector).count()
       if (sliderCount === 0) {
-        sendLogInfo('滑块验证成功！')
+        sendLogDebug('滑块验证成功！')
         return true
       } else {
         sendLogError('滑块验证失败')
@@ -244,7 +244,7 @@ export async function handleSliderWithRetry(
   maxRetries: number = 3
 ) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    sendLogInfo(`第 ${attempt}/${maxRetries} 次尝试处理滑块...`)
+    sendLogDebug(`第 ${attempt}/${maxRetries} 次尝试处理滑块...`)
 
     const success = await handleSliderCaptcha(page, sliderSelector, containerSelector)
 
@@ -254,7 +254,6 @@ export async function handleSliderWithRetry(
 
     if (attempt < maxRetries) {
       // 等待一段时间后重试（可能需要等待页面刷新滑块）
-      sendLogInfo('等待滑块刷新...')
       await page.waitForTimeout(2000 + Math.random() * 1000)
 
       // 检查是否有刷新按钮，尝试点击
@@ -306,8 +305,33 @@ export async function launchBrowserContext(
   try {
     browserContext = await chromium.launchPersistentContext(userDataDir, options)
   } catch (e) {
+    if (process.platform !== 'win32') {
+      throw new Error('msedge channel is only supported on Windows')
+    }
     options.channel = 'msedge'
     browserContext = await chromium.launchPersistentContext(userDataDir, options)
   }
   return { ctx: browserContext }
+}
+
+/**
+ * 重置浏览器上下文 - 删除指定的用户数据文件夹
+ * @param {string} userDataDir - 用户数据文件夹路径（必填）
+ * @returns {Promise<boolean>} 是否成功删除
+ */
+export async function resetBrowserContext(userDataDir: string): Promise<boolean> {
+  if (!userDataDir) {
+    sendLogError('userDataDir is required')
+    return false
+  }
+
+  try {
+    sendLogInfo(`Resetting browser context: ${userDataDir}`)
+    rmSync(userDataDir, { recursive: true, force: true })
+    sendLogInfo('Browser context reset successfully')
+    return true
+  } catch (error: any) {
+    sendLogError(`Failed to reset browser context: ${error.message}`)
+    return false
+  }
 }

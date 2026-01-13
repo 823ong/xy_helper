@@ -53,6 +53,14 @@
           {{ platformInfo.running ? '停止' : '启动浏览器' }}
         </NButton>
         <NTag>{{ platformInfo.successCount }}</NTag>
+        <NButton @click="handleResetBrowser">
+          <template #icon>
+            <NIcon>
+              <FingerPrint />
+            </NIcon>
+          </template>
+          重置浏览器历史
+        </NButton>
       </div>
       <div>
         <NButton @click="handleOpenSuccessFile" :loading="loadingObj.openFile">
@@ -66,9 +74,9 @@
 <script setup lang="tsx">
   import LogPanel from '@renderer/components/LogPanel.vue'
   import { win } from '@renderer/win'
-  import { Refresh } from '@vicons/ionicons5'
-  import { computed, onMounted, reactive, ref } from 'vue'
-  import { TransferData, TransferLog } from '../../../../preload/types/api'
+  import { FingerPrint, Refresh } from '@vicons/ionicons5'
+  import { computed, h, onMounted, reactive, ref } from 'vue'
+  import { TransferLog } from '../../../../preload/types/api'
   import { useSystemSettingsStore } from '@renderer/stores/systemSettings'
   import { XYWorkerBaseInfo } from '../../../../preload/types/XYWorker'
   import tipAudio from '@renderer/assets/tip.mp3'
@@ -84,17 +92,10 @@
     codePlatformBalance: false,
     openFile: false
   })
-  const codePlatform = ref('')
   const platformInfo = reactive<Partial<XYWorkerBaseInfo>>({
     running: false
   })
-  const intervalSeconds = ref(0.5)
-  const codePlatformBalance = computed(() => {
-    return (
-      systemSettingsStore.settings.smsPlatform.find((item) => item.name === codePlatform.value)
-        ?.balance ?? 0
-    )
-  })
+  const intervalSeconds = ref(5)
   const codePlatformOptions = computed(() => {
     return systemSettingsStore.settings.smsPlatform.map((item) => ({
       label: item.name,
@@ -149,6 +150,13 @@
     } else {
       await handleStart()
     }
+  }
+
+  const handleResetBrowser = async () => {
+    await win.api.xyScan.update({
+      type: 'command',
+      command: 'resetBrowser'
+    })
   }
 
   const handleIntervalChange = async (value: number | null) => {

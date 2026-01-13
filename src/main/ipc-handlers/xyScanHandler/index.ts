@@ -18,7 +18,7 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   currentPlatform: '',
   successCount: 0,
   balance: '',
-  getPhoneInterval: 500, // 默认500ms
+  getPhoneInterval: 5000, // 默认500s
   getInfo(): XYWorkerBaseInfo {
     return {
       running: this.running,
@@ -65,6 +65,9 @@ export function registerXyScanHandler() {
         xyScanInfo.running = false
         sendToWorker(data)
         break
+      case 'resetBrowser':
+        sendToWorker(data)
+        break;
       case 'switchPlatform':
         xyScanInfo.currentPlatform = data.payload as string
         break
@@ -264,8 +267,6 @@ function startWorkerProcess(): void {
           break
         }
         const phone = currentPhoneInfo.phone
-        // const pt = currentPhoneInfo.pt;
-        // const reason = data.reason;
         const noPass = data.status === -1 || data.status === 3
         xySendLog2UI({
           type: 'log',
@@ -275,11 +276,11 @@ function startWorkerProcess(): void {
         if (noPass) {
           const api = getAPI(xyScanInfo.currentPlatform)
           try{
-            await api.blockPhone(phone);
+            const b = await api.blockPhone(phone)
             xySendLog2UI({
               type: 'log',
               level: 'debug',
-              content: `已拉黑号码${phone}`
+              content: `已拉黑号码${phone},拉黑结果:${b}`
             })
           }catch (e){
             xySendLog2UI({
@@ -345,6 +346,7 @@ function startWorkerProcess(): void {
 
 async function workLoop() {
   const sleep = async (ms: number) => await new Promise((resolve) => setTimeout(resolve, ms))
+  let nextInvokeTime = Date.now();
   while (xyScanInfo.running) {
     // 正在检查
     if (xyScanInfo.currentPhoneInfo?.phone) {
@@ -352,18 +354,27 @@ async function workLoop() {
       continue
     }
     try {
-
+      if(Date.now() < nextInvokeTime) {
+        xySendLog2UI({
+          type: 'log',
+          level: 'info',
+          content: `未达到间隔${xyScanInfo.getPhoneInterval},${Date.now()},${nextInvokeTime},差距:${Date.now()- nextInvokeTime}`
+        })
+        await sleep(300)
+        continue
+      }
       const phone = await getAPI(xyScanInfo.currentPlatform).getPhone()
+      nextInvokeTime = Date.now() + xyScanInfo.getPhoneInterval
       xySendLog2UI({
         type: 'log',
         level: 'info',
         content: `平台${xyScanInfo.currentPlatform}获取到号码:${phone}`
       })
-      if (await isExist(phone)) {
+      if (!phone || (await isExist(phone))) {
         xySendLog2UI({
           type: 'log',
           level: 'info',
-          content: `号码${phone}已存在,重新获取`
+          content: `号码${phone}有误或已存在,重新获取`
         })
         continue
       }
@@ -392,6 +403,5 @@ async function workLoop() {
       })
       broadcastXyScanInfoUpdate()
     }
-    await sleep(xyScanInfo.getPhoneInterval)
   }
 }

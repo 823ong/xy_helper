@@ -22,6 +22,7 @@ const api: PlatformAPI = {
     return prefix + suffix;
   },
   async blockPhone(_phone: string) {
+    console.log('调用了拉黑接口')
     return true
   }
 }

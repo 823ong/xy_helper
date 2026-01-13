@@ -226,6 +226,7 @@
 
   .log-info {
     color: #4caf50;
+    background-color: rgba(76, 175, 80, 0.1);
   }
 
   .log-info .log-level {
