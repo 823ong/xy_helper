@@ -10,6 +10,7 @@ export interface XYWorkerBaseInfo {
   currentPlatform: string;
   successCount: number;
   balance: string;
+  getPhoneInterval: number;
 }
 
 export interface XYWorkerInfo extends XYWorkerBaseInfo {

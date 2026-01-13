@@ -18,6 +18,7 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   currentPlatform: '',
   successCount: 0,
   balance: '',
+  getPhoneInterval: 500, // 默认500ms
   getInfo(): XYWorkerBaseInfo {
     return {
       running: this.running,
@@ -26,7 +27,8 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
       currentPhoneInfo: this.currentPhoneInfo,
       phoneList: this.phoneList,
       successCount: this.successCount,
-      balance: this.balance
+      balance: this.balance,
+      getPhoneInterval: this.getPhoneInterval
     }
   }
 }
@@ -118,6 +120,12 @@ export function registerXyScanHandler() {
             level: 'error',
             content: `导出文件失败: ${error}`
           })
+        }
+        break
+      case 'setGetPhoneInterval':
+        const interval = data.payload as number
+        if (interval > 0) {
+          xyScanInfo.getPhoneInterval = interval
         }
         break
     }
@@ -284,7 +292,7 @@ function startWorkerProcess(): void {
           await saveSuccessPhone(
             phone,
             xyScanInfo.currentPlatform,
-            api.projectId,
+            api.projectId ?? '',
             data.status,
             data.reason
           )
@@ -293,7 +301,7 @@ function startWorkerProcess(): void {
           await saveSuccessPhone(
             phone,
             xyScanInfo.currentPlatform,
-            api.projectId,
+            api.projectId ?? '',
             2,
             data.reason
           )
@@ -384,6 +392,6 @@ async function workLoop() {
       })
       broadcastXyScanInfoUpdate()
     }
-    await sleep(1000)
+    await sleep(xyScanInfo.getPhoneInterval)
   }
 }
