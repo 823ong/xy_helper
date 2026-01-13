@@ -9,6 +9,7 @@ import {
 } from './utils'
 import { BrowserContext, Page } from 'playwright'
 import { join } from 'path'
+import fs from 'fs'
 
 const parentPort = (process as any).parentPort
 
@@ -28,7 +29,7 @@ let info: {
   executedLoop: false,
   currentPhone: '',
   browserContext: null,
-  browserProfileDirPath: 'browserUserData/xyScan',
+  browserProfileDirPath: join(process.env.USER_DATA_PATH ?? './', 'browserUserData/xyScan'),
   page: null
 }
 
@@ -179,10 +180,15 @@ if (parentPort) {
         case 'resetBrowser':
           info.executedLoop = false
           try {
-            await info.browserContext!.close()
+            await info.browserContext?.close()
             info.browserContext = null
             info.page = null
-            await resetBrowserContext(info.browserProfileDirPath)
+            if (fs.existsSync(info.browserProfileDirPath)) {
+              fs.rmSync(info.browserProfileDirPath, { recursive: true, force: true })
+            }
+          } catch (e) {
+            console.error(e)
+            sendLogError(`${e}`)
           } finally {
             info.executedLoop = true
             await initIfNecessary()
@@ -239,8 +245,7 @@ if (parentPort) {
 }
 
 const contextInit = async () => {
-  const userDataPath = process.env.USER_DATA_PATH || './'
-  const { ctx } = await launchBrowserContext(join(userDataPath, info.browserProfileDirPath))
+  const { ctx } = await launchBrowserContext(info.browserProfileDirPath)
   info.browserContext = ctx
   if (!info.browserContext) {
     sendLogError('启动浏览器失败: 无法创建上下文')

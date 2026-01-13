@@ -327,9 +327,28 @@ export async function resetBrowserContext(userDataDir: string): Promise<boolean>
 
   try {
     sendLogInfo(`Resetting browser context: ${userDataDir}`)
-    rmSync(userDataDir, { recursive: true, force: true })
-    sendLogInfo('Browser context reset successfully')
-    return true
+
+    // 等待浏览器进程释放文件句柄
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // 重试机制：最多尝试3次删除
+    let lastError: any = null
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        rmSync(userDataDir, { recursive: true, force: true })
+        sendLogInfo('Browser context reset successfully')
+        return true
+      } catch (err: any) {
+        lastError = err
+        sendLogDebug(`删除尝试 ${attempt}/3 失败: ${err.message}`)
+        if (attempt < 3) {
+          // 等待更长时间后重试
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+        }
+      }
+    }
+
+    throw lastError
   } catch (error: any) {
     sendLogError(`Failed to reset browser context: ${error.message}`)
     return false

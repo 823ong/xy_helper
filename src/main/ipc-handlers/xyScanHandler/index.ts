@@ -355,11 +355,6 @@ async function workLoop() {
     }
     try {
       if(Date.now() < nextInvokeTime) {
-        xySendLog2UI({
-          type: 'log',
-          level: 'info',
-          content: `未达到间隔${xyScanInfo.getPhoneInterval},${Date.now()},${nextInvokeTime},差距:${Date.now()- nextInvokeTime}`
-        })
         await sleep(300)
         continue
       }
