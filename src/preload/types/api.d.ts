@@ -13,8 +13,8 @@ export interface SystemSettings extends Record<string, any> {
   }
   smsPlatform: SmsPlatformInfo[]
   xyScan?: {
-    fetchSize: number
-    autoFetchTriggerSize: number
+    execJsAfterSuccess: false
+    execJsAfterContent: ''
   }
 }
 
@@ -90,7 +90,7 @@ export interface TransferLog {
 export interface TransferCommand {
   type: 'command'
   command: string // 命令名，如 'open-file', 'save-config'
-  payload?: unknown // 可选参数
+  payload?: any // 可选参数
 }
 
 interface DBParams<T = any> {

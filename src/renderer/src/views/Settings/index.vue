@@ -2,7 +2,9 @@
   <div class="p-6">
     <n-card title="设置">
       <template #header-extra>
-        <n-button type="primary" @click="handleSaveConfig" :loading="loadingObj.saveLoading">保存</n-button>
+        <n-button type="primary" @click="handleSaveConfig" :loading="loadingObj.saveLoading">
+          保存
+        </n-button>
       </template>
       <n-space class="mb-4" align="center">
         <span>配置同步：</span>
@@ -128,6 +130,9 @@
         <n-tab-pane name="sms" tab="接码平台">
           <sms-code-platform-setting ref="smsSettingForm" />
         </n-tab-pane>
+        <n-tab-pane name="xyScan" tab="扫码">
+          <XyScanSetting ref="xyScanSettingForm" />
+        </n-tab-pane>
       </n-tabs>
     </n-card>
     <n-modal v-model:show="showCreateModal" preset="dialog" title="新建配置">
@@ -148,9 +153,11 @@
   import { cloneDeep } from 'lodash'
   import SmsCodePlatformSetting from '@renderer/views/Settings/SmsCodePlatformSetting.vue'
   import dayjs from 'dayjs'
+  import XyScanSetting from '@renderer/views/Settings/XyScanSetting.vue'
 
   const systemSettingsStore = useSystemSettingsStore()
   const smsSettingForm = ref<InstanceType<typeof SmsCodePlatformSetting>>()
+  const xyScanSettingForm = ref<InstanceType<typeof XyScanSetting>>()
   const syncConfigs = ref<SyncConfig[]>([])
   const selectedConfigId = ref<number | null>(null)
   const showCreateModal = ref(false)
@@ -187,6 +194,9 @@
     try {
       if (smsSettingForm.value?.get()) {
         userSettings.smsPlatform = smsSettingForm.value.get()
+      }
+      if(xyScanSettingForm.value?.get()){
+        userSettings.xyScan = xyScanSettingForm.value.get() as any
       }
       const config = cloneDeep(userSettings)
       await win.api.systemSettings.set(config)

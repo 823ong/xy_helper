@@ -7,6 +7,9 @@ import { PhoneData } from "../../database/entities/PhoneData";
 import { getRepository } from "../../database/dataSource";
 import fs from "fs";
 import IpcMainInvokeEvent = Electron.IpcMainInvokeEvent;
+import { currentConfig } from '../systemSettingsHandler'
+import * as vm from 'node:vm'
+import axios from 'axios'
 
 export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   running: false,
@@ -67,7 +70,7 @@ export function registerXyScanHandler() {
         break
       case 'resetBrowser':
         sendToWorker(data)
-        break;
+        break
       case 'switchPlatform':
         xyScanInfo.currentPlatform = data.payload as string
         break
@@ -104,8 +107,8 @@ export function registerXyScanHandler() {
           }
 
           // 生成文件内容
-          const lines = successPhones.map(p =>
-            `${p.createAt.toISOString().substring(0, 23)}-${p.pt}-${p.xmid}-${p.phone}`
+          const lines = successPhones.map(
+            (p) => `${p.createAt.toISOString().substring(0, 23)}-${p.pt}-${p.xmid}-${p.phone}`
           )
 
           // 写入文件
@@ -131,6 +134,11 @@ export function registerXyScanHandler() {
           xyScanInfo.getPhoneInterval = interval
         }
         break
+      case 'testExecAfter': {
+        console.log('执行测试代码')
+        execJsAfterSuccess(true, data.payload ?? '')
+        break
+      }
     }
     broadcastXyScanInfoUpdate()
   })
@@ -211,6 +219,44 @@ async function isExist(phone: string): Promise<boolean> {
 }
 
 let lastSendLog = ''
+
+function execJsAfterSuccess(test = false, jsStr?: string) {
+  try {
+    const xyScanConfig = currentConfig.xyScan!
+    if (
+      test &&
+      (!xyScanConfig ||
+      !xyScanConfig.execJsAfterSuccess ||
+      !xyScanConfig.execJsAfterContent)
+    ) {
+      return
+    }
+    const api = getAPI(xyScanInfo.currentPlatform)
+    const xmid = api.projectId
+    const phone = xyScanInfo.currentPhoneInfo?.phone
+    const pt = xyScanInfo.currentPlatform
+    const jsContent = jsStr ?? xyScanConfig.execJsAfterContent
+    const context = {
+      xyScanInfo,
+      xySendLog2UI,
+      api,
+      phone,
+      pt,
+      xmid,
+      fetch,
+      URLSearchParams,
+      axios
+    }
+    vm.createContext(context)
+    vm.runInContext(jsContent, context)
+  } catch (e) {
+    xySendLog2UI({
+      type: 'log',
+      level: 'error',
+      content: '执行动态代码错误: ' + e
+    })
+  }
+}
 
 // 获取 worker 文件路径
 function getWorkerPath(): string {
@@ -299,6 +345,7 @@ function startWorkerProcess(): void {
           )
         } else {
           const api = getAPI(xyScanInfo.currentPlatform)
+          // execJsAfterSuccess()
           await saveSuccessPhone(
             phone,
             xyScanInfo.currentPlatform,
@@ -308,6 +355,7 @@ function startWorkerProcess(): void {
           )
           xyScanInfo.successCount++
         }
+        execJsAfterSuccess()
         // 处理完毕了,当前号码置空,让工作循环自动处理
         xyScanInfo.currentPhoneInfo = null
         xyScanInfo.checkRunning = false
