@@ -1,6 +1,6 @@
 {
   "name": "xy_helper",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "main": "./out/main/index.js",
   "author": "823ong",
   "scripts": {
