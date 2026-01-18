@@ -345,7 +345,7 @@ function startWorkerProcess(): void {
           )
         } else {
           const api = getAPI(xyScanInfo.currentPlatform)
-          // execJsAfterSuccess()
+          execJsAfterSuccess()
           await saveSuccessPhone(
             phone,
             xyScanInfo.currentPlatform,
@@ -355,7 +355,6 @@ function startWorkerProcess(): void {
           )
           xyScanInfo.successCount++
         }
-        execJsAfterSuccess()
         // 处理完毕了,当前号码置空,让工作循环自动处理
         xyScanInfo.currentPhoneInfo = null
         xyScanInfo.checkRunning = false

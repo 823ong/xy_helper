@@ -11,7 +11,6 @@ export default defineConfig({
         input: {
           index: resolve('src/main/index.ts'),
           xyScan: resolve('src/main/workers/xyScan.ts'),
-          xyCKGetter: resolve('src/main/workers/xyCKGetter.ts')
         },
         output: {
           entryFileNames: (chunkInfo) => {

@@ -1,7 +1,6 @@
 import { chromium } from 'playwright-extra'
 import { Page, BrowserContext } from 'playwright'
 import { rmSync } from 'fs'
-import { join } from 'path'
 
 const parentPort = (process as any).parentPort
 
@@ -159,8 +158,9 @@ export async function handleSliderCaptcha(
       return false
     }
 
-    // 计算滑动距离（容器宽度 - 滑块宽度 - 一些边距）
-    const distance = containerBox.width - sliderBox.width + 30
+    // 计算滑动距离（容器宽度 - 滑块宽度 + 随机溢出一些宽度(30~30+20)）
+    const distance =
+      containerBox.width - sliderBox.width + (Math.floor(Math.random() * (20 + 1)) + 30)
 
     // 3. 移动到滑块中心位置（加入随机偏移）
     const startX = sliderBox.x + sliderBox.width / 2 + (Math.random() - 0.5) * 5

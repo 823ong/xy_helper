@@ -1,10 +1,9 @@
-import { registerAxiosHandler, unregisterAxiosHandler } from "./axiosHandler";
-import { registerXyScanHandler } from "./xyScanHandler";
-import { registerSystemSettingsHandler, unregisterSystemSettingsHandler } from "./systemSettingsHandler";
-import { registerDatabaseHandler } from "./databaseHandler";
-import { registerPhoneDataHandler } from "./phoneDataHandler";
-import { registerXyCKGetterHandler } from './cookiePickerHandler'
-import { initUpdater } from "./updaterHandler"
+import { registerAxiosHandler, unregisterAxiosHandler } from './axiosHandler'
+import { registerXyScanHandler } from './xyScanHandler'
+import { registerSystemSettingsHandler, unregisterSystemSettingsHandler } from './systemSettingsHandler'
+import { registerDatabaseHandler } from './databaseHandler'
+import { registerPhoneDataHandler } from './phoneDataHandler'
+import { initUpdater } from './updaterHandler'
 
 /**
  * 注册所有的IPC handlers
@@ -14,7 +13,6 @@ export function registerAllHandlers(): void {
   registerSystemSettingsHandler()
   registerAxiosHandler()
   registerXyScanHandler()
-  registerXyCKGetterHandler()
   registerDatabaseHandler()
   registerPhoneDataHandler()
   // 初始化更新模块
