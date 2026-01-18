@@ -274,7 +274,8 @@ async function workLoop() {
 
       await page.waitForLoadState('networkidle')
 
-      if (!handler) {
+      // 如果 handler 不存在或者 handler 持有的 page 与当前 page 不一致,重新创建 handler
+      if (!handler || handler.page !== page) {
         handler = new PageStateHandler(page)
       }
 
@@ -295,6 +296,8 @@ async function workLoop() {
       const msg = e.toString()
       if (msg.includes('has been closed')) {
         sendLogDebug('正在重启页面中...')
+        // 页面已关闭,清空 handler 以便下次循环重新创建
+        handler = null
         await sleep(CONFIG.loopDelay)
       } else {
         throw e
@@ -346,12 +349,14 @@ async function initPage(): Promise<void> {
     sendLogError('初始化页面失败,上下文为空')
     return
   }
-  state.page = await state.browserContext.newPage()
-  state.page.on('close', () => {
-    sendLogDebug('页面已被关闭')
-    state.page = null
-    // state.running = false
-  })
+  if(!state.page){
+    state.page = await state.browserContext.newPage()
+    state.page.on('close', () => {
+      sendLogDebug('页面已被关闭')
+      state.page = null
+      // state.running = false
+    })
+  }
 }
 
 async function initIfNecessary(): Promise<void> {
@@ -409,8 +414,6 @@ if (parentPort) {
           if (msg.payload?.currentPhone && state.currentPhone !== msg.payload?.currentPhone) {
             state.running = true
             sendLogDebug(`开始测试新号码: ${msg.payload?.currentPhone}`)
-          } else {
-            sendLogDebug(`同步未收到号码`)
           }
           state = { ...state, ...msg.payload }
           startWorkLoopIfNeeded()

@@ -155,7 +155,9 @@ function broadcastXyScanInfoUpdate() {
     command: 'syncStatus',
     payload: {
       running: xyScanInfo.running,
-      currentPhone: xyScanInfo.currentPhoneInfo?.phone
+      currentPhone: xyScanInfo.currentPhoneInfo?.phone,
+      enableProxy: xyScanInfo.enableProxy,
+      fetchProxyUrl: xyScanInfo.fetchProxyUrl,
     }
   })
 }
@@ -215,12 +217,13 @@ let lastSendLog = ''
 function execJsAfterSuccess(test = false, jsStr?: string) {
   try {
     const xyScanConfig = currentConfig.xyScan!
-    if (
-      test &&
-      (!xyScanConfig ||
-      !xyScanConfig.execJsAfterSuccess ||
-      !xyScanConfig.execJsAfterContent)
-    ) {
+    if (!xyScanConfig) {
+      return
+    }
+    if (!xyScanConfig.execJsAfterContent || !jsStr){
+      return
+    }
+    if (!test || !xyScanConfig.execJsAfterSuccess) {
       return
     }
     const api = getAPI(xyScanInfo.currentPlatform)
