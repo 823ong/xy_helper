@@ -32,40 +32,50 @@
       </div>
     </div>
 
-    <!-- 设置区域 -->
-    <div class="flex items-center gap-4">
-      <span class="text-sm font-medium">获取手机间隔(秒):</span>
-      <NInputNumber
-        v-model:value="intervalSeconds"
-        :min="0.1"
-        :step="0.1"
-        :precision="1"
-        class="w-30"
-        @update:value="handleIntervalChange"
-      />
-    </div>
-
     <!-- 主要操作区域 -->
-    <div class="flex-1 flex flex-col gap-3">
+    <div class="flex flex-col gap-3">
       <!-- 操作按钮区域 -->
       <div class="flex gap-3">
         <NButton :type="platformInfo.running ? 'error' : 'info'" @click="handleToggle">
           {{ platformInfo.running ? '停止' : '启动浏览器' }}
         </NButton>
         <NTag>{{ platformInfo.successCount }}</NTag>
-        <NButton @click="handleResetBrowser">
-          <template #icon>
-            <NIcon>
-              <FingerPrint />
-            </NIcon>
-          </template>
-          重置浏览器历史
-        </NButton>
       </div>
       <div>
         <NButton @click="handleOpenSuccessFile" :loading="loadingObj.openFile">
           打开成功文件
         </NButton>
+      </div>
+    </div>
+
+    <!-- 设置区域 -->
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center gap-4">
+        <span class="text-sm font-medium">获取手机间隔(秒):</span>
+        <NInputNumber
+          v-model:value="intervalSeconds"
+          :min="0.1"
+          :step="0.1"
+          :precision="1"
+          class="w-30"
+          @update:value="handleIntervalChange"
+        />
+      </div>
+
+      <div class="flex items-center gap-4">
+        <span class="text-sm font-medium">启用代理:</span>
+        <NSwitch v-model:value="platformInfo.enableProxy" @update:value="handleEnableProxyChange" />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <span class="text-sm font-medium">代理获取URL:</span>
+        <NInput
+          v-model:value="platformInfo.fetchProxyUrl"
+          type="textarea"
+          placeholder="请输入代理获取URL"
+          :rows="3"
+          @blur="handleFetchProxyUrlChange"
+        />
       </div>
     </div>
   </div>
@@ -74,8 +84,8 @@
 <script setup lang="tsx">
   import LogPanel from '@renderer/components/LogPanel.vue'
   import { win } from '@renderer/win'
-  import { FingerPrint, Refresh } from '@vicons/ionicons5'
-  import { computed, h, onMounted, reactive, ref } from 'vue'
+  import { Refresh } from '@vicons/ionicons5'
+  import { computed, onMounted, reactive, ref } from 'vue'
   import { TransferLog } from '../../../../preload/types/api'
   import { useSystemSettingsStore } from '@renderer/stores/systemSettings'
   import { XYWorkerBaseInfo } from '../../../../preload/types/XYWorker'
@@ -152,22 +162,37 @@
     }
   }
 
-  const handleResetBrowser = async () => {
-    await win.api.xyScan.update({
-      type: 'command',
-      command: 'resetBrowser'
-    })
-  }
-
   const handleIntervalChange = async (value: number | null) => {
     if (value && value > 0) {
       const intervalMs = Math.round(value * 1000)
       await win.api.xyScan.update({
         type: 'command',
-        command: 'setGetPhoneInterval',
-        payload: intervalMs
+        command: 'updateXyScanInfo',
+        payload: {
+          getPhoneInterval: intervalMs
+        }
       })
     }
+  }
+
+  const handleEnableProxyChange = async (value: boolean) => {
+    await win.api.xyScan.update({
+      type: 'command',
+      command: 'updateXyScanInfo',
+      payload: {
+        enableProxy: value
+      }
+    })
+  }
+
+  const handleFetchProxyUrlChange = async () => {
+    await win.api.xyScan.update({
+      type: 'command',
+      command: 'updateXyScanInfo',
+      payload: {
+        fetchProxyUrl: platformInfo.fetchProxyUrl
+      }
+    })
   }
   // 处理错误提示音
   const handleErrorAlert = (logObj: TransferLog) => {

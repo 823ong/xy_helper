@@ -1,13 +1,12 @@
 import {
   fetchProxyInfo,
-  handleSliderCaptcha,
-  launchBrowserContext,
+  handleSliderCaptcha, launchBrowser,
   sendData,
   sendLogDebug,
   sendLogError,
   sendLogInfo
 } from './utils'
-import { BrowserContext, Page } from 'playwright'
+import { Browser, BrowserContext, Page } from 'playwright'
 
 const parentPort = (process as any).parentPort
 
@@ -48,10 +47,16 @@ interface WorkerState {
   running: boolean
   executedLoop: boolean
   currentPhone: string
+  browser: Browser | null
   browserContext: BrowserContext | null
   page: Page | null
   enableProxy: boolean
   fetchProxyUrl: string
+  proxy?: {
+    username: string
+    password: string
+    server: string
+  }
 }
 
 type VerifyResult = 'authenticated' | 'not_authenticated' | 'account_not_exist' | 'error'
@@ -61,6 +66,7 @@ let state: WorkerState = {
   running: false,
   executedLoop: false,
   currentPhone: '',
+  browser: null,
   browserContext: null,
   page: null,
   enableProxy: false,
@@ -89,7 +95,6 @@ function sendVerifyResult(result: VerifyResult, reason?: string): void {
   }
 
   state.running = false
-  console.log(`发出信息${{result,reason}}`)
   sendData({
     status: statusMap[result],
     reason
@@ -124,13 +129,14 @@ class PageStateHandler {
   async handleSliderRetry(): Promise<boolean> {
     if ((await this.page.locator(SELECTORS.sliderRefresh).count()) > 0) {
       if (this.sliderRetryCount > CONFIG.sliderMaxRetry) {
-        sendLogError('滑块验证码失败,刷新浏览器')
+        sendLogError('滑块验证码失败,重启上下文')
         this.sliderRetryCount = 0
-        await navigateToHome(this.page)
+        await restartContext()
         return true
       }
       await this.page.locator(SELECTORS.sliderRefresh).click()
       this.sliderRetryCount++
+      sendLogDebug(`滑块重试:${this.sliderRetryCount}/${CONFIG.sliderMaxRetry}`)
       return true
     }
     return false
@@ -177,7 +183,11 @@ class PageStateHandler {
           sendLogError('获取代理失败')
           return true
         }
-        // todo 获取代理
+        state.proxy = {
+          server: `http://${proxy.ip}:${proxy.port}`,
+          username: proxy.account,
+          password: proxy.password
+        }
         // 关闭旧的浏览器上下文
         await state.browserContext?.close()
         state.browserContext = null
@@ -191,13 +201,8 @@ class PageStateHandler {
       return true
     } else if ((await this.page.locator(SELECTORS.clickCaptcha2).count()) > 0) {
       sendLogError('遇到了图片滑块验证码,清空并重启浏览器')
-      // 关闭旧的浏览器上下文
-      await state.browserContext?.close()
-      state.browserContext = null
-      state.page = null
-      // 创建新的上下文
-      await initBrowserContext()
-      await initPage()
+      // 重启上下文
+      await restartContext()
       return true
     }
     return false
@@ -250,6 +255,7 @@ class PageStateHandler {
 
 // 主工作循环
 async function workLoop() {
+  let handler:any = null
   while (state.running) {
     if (!state.currentPhone) {
       sendLogDebug('等待接收号码')
@@ -261,14 +267,16 @@ async function workLoop() {
       await initIfNecessary()
       const page = state.page
       if (!page) {
-        state.running = false
-        sendLogError('任务启动失败,没有页面可以控制,请检查浏览器是否正常启动')
-        return
+        sendLogError('页面未就绪')
+        await sleep(CONFIG.waitPhoneDelay)
+        continue
       }
 
       await page.waitForLoadState('networkidle')
 
-      const handler = new PageStateHandler(page)
+      if (!handler) {
+        handler = new PageStateHandler(page)
+      }
 
       // 按优先级处理各种页面状态
       if (await handler.handleSliderCaptcha()) continue
@@ -285,7 +293,10 @@ async function workLoop() {
       await sleep(CONFIG.loopDelay)
     } catch (e: any) {
       const msg = e.toString()
-      if (!msg || !msg.toLowerCase().includes('timeout')) {
+      if (msg.includes('has been closed')) {
+        sendLogDebug('正在重启页面中...')
+        await sleep(CONFIG.loopDelay)
+      } else {
         throw e
       }
     }
@@ -296,17 +307,34 @@ async function workLoop() {
 }
 
 // ==================== 浏览器初始化 ====================
-async function initBrowserContext(): Promise<void> {
+async function initBrowser(): Promise<void> {
   // 使用非持久化模式，每次创建新的上下文
-  const { ctx } = await launchBrowserContext()
-  state.browserContext = ctx
-  if (!state.browserContext) {
+  const { ctx } = await launchBrowser()
+  state.browser = ctx
+  if (!state.browser) {
     sendLogError('启动浏览器失败: 无法创建上下文')
     return
   }
 
+  state.browser.on('disconnected', () => {
+    sendLogDebug('浏览器已被关闭')
+    state.browserContext = null
+    state.page = null
+    // state.running = false
+  })
+}
+async function initBrowserContext(): Promise<void> {
+  if (!state.browser) {
+    sendLogError('启动浏览器失败: 无法创建上下文')
+    return
+  }
+  const option: any = {}
+  if(state.enableProxy && state.fetchProxyUrl && state.proxy){
+    option.proxy = state.proxy
+  }
+  state.browserContext = await state.browser.newContext(option)
   state.browserContext.on('close', () => {
-    sendLogInfo('浏览器上下文已被关闭')
+    sendLogDebug('浏览器上下文已被关闭')
     state.browserContext = null
     state.page = null
     // state.running = false
@@ -315,30 +343,29 @@ async function initBrowserContext(): Promise<void> {
 
 async function initPage(): Promise<void> {
   if (!state.browserContext) {
-    await initBrowserContext()
+    sendLogError('初始化页面失败,上下文为空')
+    return
   }
-  if (!state.page && state.browserContext) {
-    state.page = await state.browserContext.newPage()
-  }
-  if (state.page) {
-    await state.page.goto(PAGE_URLS.home)
-    state.page.on('close', () => {
-      sendLogInfo('页面已被关闭,浏览器任务停止')
-      state.page = null
-      // state.running = false
-    })
-  }
+  state.page = await state.browserContext.newPage()
+  state.page.on('close', () => {
+    sendLogDebug('页面已被关闭')
+    state.page = null
+    // state.running = false
+  })
 }
 
 async function initIfNecessary(): Promise<void> {
+  if (!state.browser) {
+    await initBrowser()
+    sendLogDebug('启动浏览器成功')
+  }
   if (!state.browserContext) {
     await initBrowserContext()
-    if (!state.browserContext) {
-      return
-    }
+    sendLogDebug('启动上下文成功')
+  }
+  if (!state.page) {
     await initPage()
-  } else if (!state.page) {
-    await initPage()
+    sendLogDebug('启动页面成功')
   }
 }
 
@@ -361,7 +388,6 @@ async function handleResetBrowser(): Promise<void> {
 
 function startWorkLoopIfNeeded(): void {
   if (state.running && !state.executedLoop) {
-    sendLogInfo('开始执行脚本')
     workLoop().catch((err) => {
       console.error('工作循环出错:', err)
       sendLogError(String(err))
@@ -391,12 +417,14 @@ if (parentPort) {
           break
 
         case 'start':
+          state.running = true
           startWorkLoopIfNeeded()
+          sendLogDebug('开始worker')
           break
 
         case 'stop':
           state.running = false
-          sendLogInfo('收到通知脚本命令')
+          sendLogDebug('🤚停止worker')
           break
 
         default:
@@ -408,4 +436,19 @@ if (parentPort) {
       sendLogError(String(error))
     }
   })
+}
+
+/**
+ * 重启上下文
+ */
+async function restartContext() {
+  await state.browserContext?.close()
+  state.browserContext = null
+  state.page = null
+  sendLogDebug('已关闭上下文和页面')
+  // 创建新的上下文
+  await initBrowserContext()
+  sendLogDebug('重启上下文成功')
+  await initPage()
+  sendLogDebug('重启页面成功')
 }

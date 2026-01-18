@@ -10,6 +10,7 @@ import IpcMainInvokeEvent = Electron.IpcMainInvokeEvent;
 import { currentConfig } from '../systemSettingsHandler'
 import * as vm from 'node:vm'
 import axios from 'axios'
+import { cloneDeep } from 'lodash'
 
 export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   running: false,
@@ -24,10 +25,8 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   enableProxy: false,
   fetchProxyUrl: '',
   getInfo(): XYWorkerBaseInfo {
-    const info  = Object.assign({}, xyScanInfo) as any
-    info.xyWorkerProcess = undefined
-    info.webContents = undefined
-    return info
+    const { xyWorkerProcess, webContents, getInfo, ...simpleData } = xyScanInfo
+    return cloneDeep(simpleData)
   }
 }
 
@@ -123,11 +122,9 @@ export function registerXyScanHandler() {
           })
         }
         break
-      case 'setGetPhoneInterval':
-        const interval = data.payload as number
-        if (interval > 0) {
-          xyScanInfo.getPhoneInterval = interval
-        }
+      case 'updateXyScanInfo':
+        const newInfo = data.payload as XYWorkerBaseInfo
+        Object.assign(xyScanInfo, newInfo)
         break
       case 'testExecAfter': {
         console.log('执行测试代码')

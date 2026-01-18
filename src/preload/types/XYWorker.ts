@@ -9,6 +9,7 @@ export interface XYWorkerBaseInfo {
   currentPlatform: string;
   successCount: number;
   balance: string;
+  // 单位:毫秒
   getPhoneInterval: number;
   enableProxy: boolean;
   fetchProxyUrl: string;

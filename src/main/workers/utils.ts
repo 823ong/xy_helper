@@ -1,5 +1,5 @@
 import { chromium } from 'playwright-extra'
-import { BrowserContext, Page } from 'playwright'
+import { BrowserContext, Page, Browser } from 'playwright'
 import { rmSync } from 'fs'
 
 const parentPort = (process as any).parentPort
@@ -272,11 +272,9 @@ export async function handleSliderWithRetry(
 }
 
 /**
- *
- * @param options  object
- * @returns {Promise<{ctx: import('playwright').BrowserContext}>}
+ * 启动浏览器
  */
-export async function launchBrowser(options: any = {}): Promise<{ ctx: BrowserContext }> {
+export async function launchBrowser(options: any = {}): Promise<{ ctx: Browser }> {
   options = Object.assign(
     {
       headless: false,
@@ -297,7 +295,7 @@ export async function launchBrowser(options: any = {}): Promise<{ ctx: BrowserCo
     },
     options
   )
-  let browser:any = null
+  let browser: Browser
   try {
     browser = await chromium.launch(options)
   } catch (e) {
