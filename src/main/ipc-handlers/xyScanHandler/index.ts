@@ -26,7 +26,9 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   fetchProxyUrl: '',
   getInfo(): XYWorkerBaseInfo {
     const { xyWorkerProcess, webContents, getInfo, ...simpleData } = xyScanInfo
-    return cloneDeep(simpleData)
+    const res = cloneDeep(simpleData)
+    res.fetchProxyUrl = currentConfig.fetchProxyUrl || ''
+    return res
   }
 }
 
@@ -62,7 +64,7 @@ export function registerXyScanHandler() {
         xyScanInfo.running = false
         sendToWorker(data)
         break
-      case 'resetBrowser':
+      case 'resetContext':
         sendToWorker(data)
         break
       case 'switchPlatform':
@@ -157,7 +159,7 @@ function broadcastXyScanInfoUpdate() {
       running: xyScanInfo.running,
       currentPhone: xyScanInfo.currentPhoneInfo?.phone,
       enableProxy: xyScanInfo.enableProxy,
-      fetchProxyUrl: xyScanInfo.fetchProxyUrl,
+      fetchProxyUrl: currentConfig.fetchProxyUrl || ''
     }
   })
 }

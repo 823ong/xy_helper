@@ -6,7 +6,8 @@ import {
   sendLogError,
   sendLogInfo
 } from './utils'
-import { Browser, BrowserContext, Page } from 'playwright'
+import { Browser, BrowserContext, Page, BrowserContextOptions } from 'playwright'
+import { random } from 'lodash'
 
 const parentPort = (process as any).parentPort
 
@@ -82,7 +83,7 @@ async function navigateToHome(page: Page): Promise<void> {
   if (page.url() === PAGE_URLS.home) {
     await page.reload()
   } else {
-    await page.goto(PAGE_URLS.home)
+    await page.goto(PAGE_URLS.home, { waitUntil: 'commit' })
   }
 }
 
@@ -95,6 +96,7 @@ function sendVerifyResult(result: VerifyResult, reason?: string): void {
   }
 
   state.running = false
+  state.currentPhone = ''
   sendData({
     status: statusMap[result],
     reason
@@ -108,7 +110,6 @@ function sendVerifyResult(result: VerifyResult, reason?: string): void {
  */
 class PageStateHandler {
   private sliderRetryCount = 0
-
   constructor(private page: Page) {}
 
   /** 处理滑块验证码 */
@@ -149,9 +150,14 @@ class PageStateHandler {
       if (!txt || txt.includes('请输入')) {
         await this.page.locator(SELECTORS.accountInput).fill(state.currentPhone)
         await this.page.locator(SELECTORS.submitButton).click()
-      } else if(txt.includes('账号不存在')){
+      } else if (txt.includes('账号不存在')) {
+        // 账号不存在提示词没有消失
+        if (!state.currentPhone) {
+          return false
+        }
         sendVerifyResult('account_not_exist', '账号不存在')
         await this.page.locator(SELECTORS.accountInput).clear()
+        await this.page.locator(SELECTORS.accountInput).click()
       }
       return true
     }
@@ -176,11 +182,12 @@ class PageStateHandler {
   /** 处理点击验证码 */
   async handleClickCaptcha(): Promise<boolean> {
     if ((await this.page.locator(SELECTORS.clickCaptcha).count()) > 0) {
-      if(state.enableProxy && state.fetchProxyUrl){
+      if (state.enableProxy && state.fetchProxyUrl) {
         sendLogDebug('惩罚验证码,获取代理')
         const proxy = await fetchProxyInfo(state.fetchProxyUrl)
-        if(!proxy){
+        if (!proxy) {
           sendLogError('获取代理失败')
+          await sleep(CONFIG.loopDelay)
           return true
         }
         state.proxy = {
@@ -195,7 +202,7 @@ class PageStateHandler {
         // 创建新的上下文
         await initBrowserContext()
         await initPage()
-      }else{
+      } else {
         sendLogError('惩罚验证码,等待人工通过校验')
       }
       return true
@@ -246,7 +253,7 @@ class PageStateHandler {
   /** 处理未知状态 */
   async handleUnknownState(): Promise<void> {
     const url = this.page.url()
-    if (!url.includes(PAGE_URLS.home)) {
+    if (!url.includes('goofish')) {
       await navigateToHome(this.page)
     }
     sendLogError('未知状态')
@@ -272,8 +279,6 @@ async function workLoop() {
         continue
       }
 
-      await page.waitForLoadState('networkidle')
-
       // 如果 handler 不存在或者 handler 持有的 page 与当前 page 不一致,重新创建 handler
       if (!handler || handler.page !== page) {
         handler = new PageStateHandler(page)
@@ -289,8 +294,6 @@ async function workLoop() {
       if (await handler.handleNewPassword()) continue
 
       await handler.handleUnknownState()
-
-      await page.waitForLoadState('networkidle')
       await sleep(CONFIG.loopDelay)
     } catch (e: any) {
       const msg = e.toString()
@@ -299,7 +302,13 @@ async function workLoop() {
         // 页面已关闭,清空 handler 以便下次循环重新创建
         handler = null
         await sleep(CONFIG.loopDelay)
+      } else if (msg.includes('Timeout')) {
+        sendLogError('请求超时,等待中...')
+      } else if (msg.includes('ERR_PROXY_CONNECTION_FAILED')) {
+        state.proxy = undefined
+        await restartContext()
       } else {
+        state.executedLoop = false
         throw e
       }
     }
@@ -331,9 +340,13 @@ async function initBrowserContext(): Promise<void> {
     sendLogError('启动浏览器失败: 无法创建上下文')
     return
   }
-  const option: any = {}
+  const option: BrowserContextOptions = {}
   if(state.enableProxy && state.fetchProxyUrl && state.proxy){
     option.proxy = state.proxy
+  }
+  option.screen = {
+    width: 1024 + random(100),
+    height: 768
   }
   state.browserContext = await state.browser.newContext(option)
   state.browserContext.on('close', () => {
@@ -375,27 +388,13 @@ async function initIfNecessary(): Promise<void> {
 }
 
 // ==================== 消息处理器 ====================
-async function handleResetBrowser(): Promise<void> {
-  state.executedLoop = false
-  try {
-    await state.browserContext?.close()
-    state.browserContext = null
-    state.page = null
-    // 不再需要删除持久化目录
-  } catch (e) {
-    console.error(e)
-    sendLogError(`${e}`)
-  } finally {
-    state.executedLoop = true
-    await initIfNecessary()
-  }
-}
 
 function startWorkLoopIfNeeded(): void {
   if (state.running && !state.executedLoop) {
     workLoop().catch((err) => {
       console.error('工作循环出错:', err)
       sendLogError(String(err))
+      state.executedLoop = false
     })
     state.executedLoop = true
   }
@@ -406,8 +405,8 @@ if (parentPort) {
     const msg = messageEvent.data
     try {
       switch (msg.command) {
-        case 'resetBrowser':
-          await handleResetBrowser()
+        case 'resetContext':
+          await restartContext()
           break
         case 'syncStatus':
           // 切换号码 自动开始

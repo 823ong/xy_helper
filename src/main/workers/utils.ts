@@ -405,16 +405,26 @@ export async function fetchProxyInfo(url: string): Promise<{
   try {
     sendLogDebug('Fetching proxy info...')
     const response = await fetch(url)
+    // {
+    //   msg: '',
+    //   code: 0,
+    //   data: {
+    //     count: 1,
+    //     proxy_list: [ '221.229.212.173:14759@d1066587111:n29bauwh' ]
+    //   }
+    // }
     const data = await response.json()
-
-    if (data.code === '0' && data.obj && data.obj.length > 0) {
-      const proxy = data.obj[0]
-      sendLogInfo(`Proxy fetched: ${proxy.ip}:${proxy.port}`)
+    if (data.code === 0 && data.data && data.data.proxy_list.length > 0) {
+      const proxyStr = data.data.proxy_list[0]
+      const [serverPort, usernamePassword] = proxyStr.split('@')
+      const [ip, port] = serverPort.split(':')
+      const [account, password] = usernamePassword.split(':')
+      sendLogInfo(`Proxy fetched: ${proxyStr}`)
       return {
-        ip: proxy.ip,
-        port: proxy.port,
-        account: proxy.account,
-        password: proxy.password
+        ip: ip,
+        port: port,
+        account: account,
+        password: password
       }
     } else {
       sendLogError(`Failed to fetch proxy: ${data.msg || 'Unknown error'}`)

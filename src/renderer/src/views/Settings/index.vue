@@ -36,6 +36,14 @@
                 <n-radio-button value="auto">自动</n-radio-button>
               </n-radio-group>
             </n-form-item>
+            <n-form-item label="代理获取URL">
+              <NInput
+                v-model:value="userSettings.fetchProxyUrl"
+                type="textarea"
+                placeholder="请输入代理获取URL"
+                :rows="3"
+              />
+            </n-form-item>
           </n-form>
         </n-tab-pane>
         <n-tab-pane name="update" tab="关于与更新">
@@ -195,7 +203,7 @@
       if (smsSettingForm.value?.get()) {
         userSettings.smsPlatform = smsSettingForm.value.get()
       }
-      if(xyScanSettingForm.value?.get()){
+      if (xyScanSettingForm.value?.get()) {
         userSettings.xyScan = xyScanSettingForm.value.get() as any
       }
       const config = cloneDeep(userSettings)

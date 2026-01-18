@@ -40,6 +40,10 @@
           {{ platformInfo.running ? '停止' : '启动浏览器' }}
         </NButton>
         <NTag>{{ platformInfo.successCount }}</NTag>
+        <NButton @click="handleResetContext">
+          <NIcon><FingerPrintSharp /></NIcon>
+          重置上下文
+        </NButton>
       </div>
       <div>
         <NButton @click="handleOpenSuccessFile" :loading="loadingObj.openFile">
@@ -70,11 +74,11 @@
       <div class="flex flex-col gap-2">
         <span class="text-sm font-medium">代理获取URL:</span>
         <NInput
-          v-model:value="platformInfo.fetchProxyUrl"
+          :value="platformInfo.fetchProxyUrl"
           type="textarea"
           placeholder="请输入代理获取URL"
           :rows="3"
-          @blur="handleFetchProxyUrlChange"
+          disabled
         />
       </div>
     </div>
@@ -84,7 +88,7 @@
 <script setup lang="tsx">
   import LogPanel from '@renderer/components/LogPanel.vue'
   import { win } from '@renderer/win'
-  import { Refresh } from '@vicons/ionicons5'
+  import { Refresh, FingerPrintSharp } from '@vicons/ionicons5'
   import { computed, onMounted, reactive, ref } from 'vue'
   import { TransferLog } from '../../../../preload/types/api'
   import { useSystemSettingsStore } from '@renderer/stores/systemSettings'
@@ -160,6 +164,12 @@
     } else {
       await handleStart()
     }
+  }
+  const handleResetContext = async () => {
+    await win.api.xyScan.update({
+      type: 'command',
+      command: 'resetContext'
+    })
   }
 
   const handleIntervalChange = async (value: number | null) => {

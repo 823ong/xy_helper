@@ -12,6 +12,7 @@ export interface SystemSettings extends Record<string, any> {
     database: string
   }
   smsPlatform: SmsPlatformInfo[]
+  fetchProxyUrl?:  string
   xyScan?: {
     execJsAfterSuccess: false
     execJsAfterContent: ''
