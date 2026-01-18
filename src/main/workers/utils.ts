@@ -1,5 +1,5 @@
 import { chromium } from 'playwright-extra'
-import { Page, BrowserContext } from 'playwright'
+import { BrowserContext, Page } from 'playwright'
 import { rmSync } from 'fs'
 
 const parentPort = (process as any).parentPort
@@ -273,6 +273,44 @@ export async function handleSliderWithRetry(
 
 /**
  *
+ * @param options  object
+ * @returns {Promise<{ctx: import('playwright').BrowserContext}>}
+ */
+export async function launchBrowser(options: any = {}): Promise<{ ctx: BrowserContext }> {
+  options = Object.assign(
+    {
+      headless: false,
+      // channel: "msedge",
+      channel: 'chrome',
+      ignoreDefaultArgs: ['--enable-automation'],
+      args: [
+        '--window-position=1,1',
+        '--window-size=1024,768',
+        '--lang=zh-CN',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-session-crashed-bubble',
+        '--disable-infobars',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-features=RestoreOnStartup'
+      ]
+    },
+    options
+  )
+  let browser:any = null
+  try {
+    browser = await chromium.launch(options)
+  } catch (e) {
+    if (process.platform !== 'win32') {
+      throw new Error('msedge channel is only supported on Windows')
+    }
+    options.channel = 'msedge'
+    browser = await chromium.launch(options)
+  }
+  return { ctx: browser }
+}
+/**
+ *
  * @param userDataDir string
  * @param options  object
  * @returns {Promise<{ctx: import('playwright').BrowserContext}>}
@@ -352,5 +390,40 @@ export async function resetBrowserContext(userDataDir: string): Promise<boolean>
   } catch (error: any) {
     sendLogError(`Failed to reset browser context: ${error.message}`)
     return false
+  }
+}
+
+
+/**
+ * 获取代理信息
+ * @returns {Promise<{ip: string, port: string, account: string, password: string} | null>}
+ */
+export async function fetchProxyInfo(url: string): Promise<{
+  ip: string
+  port: string
+  account: string
+  password: string
+} | null> {
+  try {
+    sendLogDebug('Fetching proxy info...')
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (data.code === '0' && data.obj && data.obj.length > 0) {
+      const proxy = data.obj[0]
+      sendLogInfo(`Proxy fetched: ${proxy.ip}:${proxy.port}`)
+      return {
+        ip: proxy.ip,
+        port: proxy.port,
+        account: proxy.account,
+        password: proxy.password
+      }
+    } else {
+      sendLogError(`Failed to fetch proxy: ${data.msg || 'Unknown error'}`)
+      return null
+    }
+  } catch (error: any) {
+    sendLogError(`Error fetching proxy: ${error.message}`)
+    return null
   }
 }

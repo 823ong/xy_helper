@@ -1,4 +1,5 @@
 import {
+  fetchProxyInfo,
   handleSliderCaptcha,
   launchBrowserContext,
   sendData,
@@ -49,6 +50,8 @@ interface WorkerState {
   currentPhone: string
   browserContext: BrowserContext | null
   page: Page | null
+  enableProxy: boolean
+  fetchProxyUrl: string
 }
 
 type VerifyResult = 'authenticated' | 'not_authenticated' | 'account_not_exist' | 'error'
@@ -59,7 +62,9 @@ let state: WorkerState = {
   executedLoop: false,
   currentPhone: '',
   browserContext: null,
-  page: null
+  page: null,
+  enableProxy: false,
+  fetchProxyUrl: '',
 }
 
 // ==================== 工具函数 ====================
@@ -164,11 +169,28 @@ class PageStateHandler {
 
   /** 处理点击验证码 */
   async handleClickCaptcha(): Promise<boolean> {
-    if (
-      (await this.page.locator(SELECTORS.clickCaptcha).count()) > 0 ||
-      (await this.page.locator(SELECTORS.clickCaptcha2).count()) > 0
-    ) {
-      sendLogError('遇到了惩罚验证码,关闭旧上下文并创建新上下文')
+    if ((await this.page.locator(SELECTORS.clickCaptcha).count()) > 0) {
+      if(state.enableProxy && state.fetchProxyUrl){
+        sendLogDebug('惩罚验证码,获取代理')
+        const proxy = await fetchProxyInfo(state.fetchProxyUrl)
+        if(!proxy){
+          sendLogError('获取代理失败')
+          return true
+        }
+        // todo 获取代理
+        // 关闭旧的浏览器上下文
+        await state.browserContext?.close()
+        state.browserContext = null
+        state.page = null
+        // 创建新的上下文
+        await initBrowserContext()
+        await initPage()
+      }else{
+        sendLogError('惩罚验证码,等待人工通过校验')
+      }
+      return true
+    } else if ((await this.page.locator(SELECTORS.clickCaptcha2).count()) > 0) {
+      sendLogError('遇到了图片滑块验证码,清空并重启浏览器')
       // 关闭旧的浏览器上下文
       await state.browserContext?.close()
       state.browserContext = null

@@ -6,11 +6,12 @@ export interface XYWorkerBaseInfo {
   running: boolean;
   checkRunning: boolean;
   currentPhoneInfo: PhoneData | null;
-  phoneList: PhoneData[];
   currentPlatform: string;
   successCount: number;
   balance: string;
   getPhoneInterval: number;
+  enableProxy: boolean;
+  fetchProxyUrl: string;
 }
 
 export interface XYWorkerInfo extends XYWorkerBaseInfo {

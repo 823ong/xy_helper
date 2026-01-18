@@ -15,24 +15,19 @@ export const xyScanInfo: XYWorkerInfo & { getInfo: () => XYWorkerBaseInfo } = {
   running: false,
   checkRunning: false,
   currentPhoneInfo: null,
-  phoneList: [],
   xyWorkerProcess: null,
   webContents: null,
   currentPlatform: '',
   successCount: 0,
   balance: '',
   getPhoneInterval: 5000, // 默认500s
+  enableProxy: false,
+  fetchProxyUrl: '',
   getInfo(): XYWorkerBaseInfo {
-    return {
-      running: this.running,
-      currentPlatform: this.currentPlatform,
-      checkRunning: this.checkRunning,
-      currentPhoneInfo: this.currentPhoneInfo,
-      phoneList: this.phoneList,
-      successCount: this.successCount,
-      balance: this.balance,
-      getPhoneInterval: this.getPhoneInterval
-    }
+    const info  = Object.assign({}, xyScanInfo) as any
+    info.xyWorkerProcess = undefined
+    info.webContents = undefined
+    return info
   }
 }
 
